@@ -2098,19 +2098,15 @@ export interface OnHandlerInterface<
   ): HonoBase<E, S & ToSchema<string, string, I, MergeTypedResponse<R>>, BasePath>
 }
 
-type ExtractStringKey<S> = Extract<
-  {
-    [K in keyof S]: keyof S[K] extends never ? K : never
-  }[keyof S],
-  string
-> extends never
-  ? keyof S & string
-  : Extract<
-      {
-        [K in keyof S]: keyof S[K] extends never ? K : never
-      }[keyof S],
-      string
-    >
+type IsEmptyObject<T> = keyof T extends never ? true : false
+
+type ExtractStringKey<S> = {
+  [K in keyof S]: IsEmptyObject<S[K]> extends true ? K : never
+}[keyof S] & string extends infer R extends string
+  ? [R] extends [never]
+    ? keyof S & string
+    : R
+  : keyof S & string
 
 ////////////////////////////////////////
 //////                            //////
@@ -2123,30 +2119,20 @@ export type ToSchema<
   P extends string,
   I extends Input | Input['in'],
   RorO // Response or Output
-> = IsAny<RorO> extends true
-  ? Simplify<{
+> = [RorO] extends [never]
+  ? { [K in P]: {} }
+  : {
       [K in P]: {
         [K2 in M as AddDollar<K2>]: Simplify<
           {
             input: AddParam<ExtractInput<I>, P>
-          } & {
-            output: {}
-            outputFormat: ResponseFormat
-            status: StatusCode
-          }
-        >
-      }
-    }>
-  : [RorO] extends [never]
-  ? {}
-  : [RorO] extends [Promise<void>]
-  ? {}
-  : Simplify<{
-      [K in P]: {
-        [K2 in M as AddDollar<K2>]: Simplify<
-          {
-            input: AddParam<ExtractInput<I>, P>
-          } & (RorO extends TypedResponse<infer T, infer U, infer F>
+          } & (IsAny<RorO> extends true
+            ? {
+                output: {}
+                outputFormat: ResponseFormat
+                status: StatusCode
+              }
+            : RorO extends TypedResponse<infer T, infer U, infer F>
             ? {
                 output: unknown extends T ? {} : T
                 outputFormat: I extends { outputFormat: string } ? I['outputFormat'] : F
@@ -2163,7 +2149,7 @@ export type ToSchema<
               })
         >
       }
-    }>
+    }
 
 export type Schema = {
   [Path: string]: {
@@ -2180,9 +2166,7 @@ type AddSchemaOrPath<
   P extends string,
   I extends Input | Input['in'],
   BasePath extends string
-> = [Merged] extends [Promise<void>]
-  ? ChangePathOfSchema<S, MergePath<BasePath, P>>
-  : [Merged] extends [never]
+> = [Merged] extends [never]
   ? ChangePathOfSchema<S, MergePath<BasePath, P>>
   : S & ToSchema<M, MergePath<BasePath, P>, I, Merged>
 
@@ -2289,7 +2273,7 @@ export type TypedResponse<
 }
 
 type MergeTypedResponse<T> = T extends Promise<void>
-  ? T
+  ? never
   : T extends Promise<infer T2>
   ? T2 extends TypedResponse
     ? T2
@@ -2399,9 +2383,33 @@ export type ExtractHandlerResponse<T> = T extends (c: any, next: any) => Promise
 // Special type to indicate "not specified"
 type NotSpecified = { readonly __notSpecified: unique symbol }
 
-type ProcessHead<T> = IfAnyThenEmptyObject<T extends Env ? (Env extends T ? {} : T) : T>
-export type IntersectNonAnyTypes<T extends any[]> = T extends [infer Head, ...infer Rest]
-  ? ProcessHead<Head> & IntersectNonAnyTypes<Rest>
+type ProcessHead<T> = 0 extends 1 & T ? {} : T extends Env ? (Env extends T ? {} : T) : T
+export type IntersectNonAnyTypes<T extends any[]> = T extends []
+  ? {}
+  : T extends [infer H1]
+  ? ProcessHead<H1>
+  : T extends [infer H1, infer H2]
+  ? ProcessHead<H1> & ProcessHead<H2>
+  : T extends [infer H1, infer H2, infer H3]
+  ? ProcessHead<H1> & ProcessHead<H2> & ProcessHead<H3>
+  : T extends [infer H1, infer H2, infer H3, infer H4]
+  ? ProcessHead<H1> & ProcessHead<H2> & ProcessHead<H3> & ProcessHead<H4>
+  : T extends [infer H1, infer H2, infer H3, infer H4, infer H5]
+  ? ProcessHead<H1> & ProcessHead<H2> & ProcessHead<H3> & ProcessHead<H4> & ProcessHead<H5>
+  : T extends [infer H1, infer H2, infer H3, infer H4, infer H5, infer H6]
+  ? ProcessHead<H1> & ProcessHead<H2> & ProcessHead<H3> & ProcessHead<H4> & ProcessHead<H5> & ProcessHead<H6>
+  : T extends [infer H1, infer H2, infer H3, infer H4, infer H5, infer H6, infer H7]
+  ? ProcessHead<H1> & ProcessHead<H2> & ProcessHead<H3> & ProcessHead<H4> & ProcessHead<H5> & ProcessHead<H6> & ProcessHead<H7>
+  : T extends [infer H1, infer H2, infer H3, infer H4, infer H5, infer H6, infer H7, infer H8]
+  ? ProcessHead<H1> & ProcessHead<H2> & ProcessHead<H3> & ProcessHead<H4> & ProcessHead<H5> & ProcessHead<H6> & ProcessHead<H7> & ProcessHead<H8>
+  : T extends [infer H1, infer H2, infer H3, infer H4, infer H5, infer H6, infer H7, infer H8, infer H9]
+  ? ProcessHead<H1> & ProcessHead<H2> & ProcessHead<H3> & ProcessHead<H4> & ProcessHead<H5> & ProcessHead<H6> & ProcessHead<H7> & ProcessHead<H8> & ProcessHead<H9>
+  : T extends [infer H1, infer H2, infer H3, infer H4, infer H5, infer H6, infer H7, infer H8, infer H9, infer H10]
+  ? ProcessHead<H1> & ProcessHead<H2> & ProcessHead<H3> & ProcessHead<H4> & ProcessHead<H5> & ProcessHead<H6> & ProcessHead<H7> & ProcessHead<H8> & ProcessHead<H9> & ProcessHead<H10>
+  : T extends [infer Head, ...infer Rest]
+  ? Rest extends []
+    ? ProcessHead<Head>
+    : ProcessHead<Head> & IntersectNonAnyTypes<Rest>
   : {}
 
 ////////////////////////////////////////
