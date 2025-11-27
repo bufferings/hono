@@ -2176,7 +2176,7 @@ type AddSchemaOrPath<
   P extends string,
   I extends Input | Input['in'],
   BasePath extends string
-> = [Merged] extends [Promise<void> | never]
+> = [Merged] extends [never]
   ? ChangePathOfSchema<S, MergePath<BasePath, P>>
   : S & ToSchema<M, MergePath<BasePath, P>, I, Merged>
 
@@ -2283,7 +2283,7 @@ export type TypedResponse<
 }
 
 type MergeTypedResponse<T> = T extends Promise<void>
-  ? T
+  ? never
   : T extends Promise<infer T2>
   ? T2 extends TypedResponse
     ? T2
