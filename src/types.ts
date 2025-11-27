@@ -2137,10 +2137,6 @@ export type ToSchema<
         >
       }
     }>
-  : [RorO] extends [never]
-  ? {}
-  : [RorO] extends [Promise<void>]
-  ? {}
   : Simplify<{
       [K in P]: {
         [K2 in M as AddDollar<K2>]: Simplify<
@@ -2180,9 +2176,7 @@ type AddSchemaOrPath<
   P extends string,
   I extends Input | Input['in'],
   BasePath extends string
-> = [Merged] extends [Promise<void>]
-  ? ChangePathOfSchema<S, MergePath<BasePath, P>>
-  : [Merged] extends [never]
+> = [Merged] extends [Promise<void> | never]
   ? ChangePathOfSchema<S, MergePath<BasePath, P>>
   : S & ToSchema<M, MergePath<BasePath, P>, I, Merged>
 
